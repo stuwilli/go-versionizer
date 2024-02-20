@@ -24,17 +24,9 @@ func commandParse() *command {
 
 	// Customize the usage function
 	flag.Usage = func() {
-		_, err := fmt.Fprintf(flag.CommandLine.Output(), "Usage of %s:\n", os.Args[0])
-		if err != nil {
-			fmt.Println("Error writing usage:", err)
-			return
-		}
-		_, err = fmt.Fprintf(flag.CommandLine.Output(), "  [directory path]\n")
-		if err != nil {
-			fmt.Println("Error writing usage:", err)
-			return
-		}
-		_, err = fmt.Fprintf(flag.CommandLine.Output(), "    The directory path. Defaults to the current directory if not provided.\n")
+		usageText := fmt.Sprintf("Usage of %s:\n  [directory path]\n    The directory path. Defaults to the current directory if not provided.\n",
+			os.Args[0])
+		_, err := fmt.Fprint(flag.CommandLine.Output(), usageText)
 		if err != nil {
 			fmt.Println("Error writing usage:", err)
 			return
