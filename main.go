@@ -15,10 +15,33 @@ import (
 type command struct {
 	dir       string
 	bumpLevel internal.VersionPart
+	createTag bool
 }
 
 func commandParse() *command {
 	bumpLevel := flag.String("bump", "patch", "The level to bump the version (major, minor, patch)")
+	createTag := flag.Bool("create", false, "Create a git tag for the new version")
+
+	// Customize the usage function
+	flag.Usage = func() {
+		_, err := fmt.Fprintf(flag.CommandLine.Output(), "Usage of %s:\n", os.Args[0])
+		if err != nil {
+			fmt.Println("Error writing usage:", err)
+			return
+		}
+		_, err = fmt.Fprintf(flag.CommandLine.Output(), "  [directory path]\n")
+		if err != nil {
+			fmt.Println("Error writing usage:", err)
+			return
+		}
+		_, err = fmt.Fprintf(flag.CommandLine.Output(), "    The directory path. Defaults to the current directory if not provided.\n")
+		if err != nil {
+			fmt.Println("Error writing usage:", err)
+			return
+		}
+		flag.PrintDefaults()
+	}
+
 	flag.Parse()
 
 	dir := flag.Arg(0) // Get the directory path
@@ -35,6 +58,7 @@ func commandParse() *command {
 	return &command{
 		dir:       dir,
 		bumpLevel: cmd,
+		createTag: *createTag,
 	}
 }
 
@@ -70,6 +94,13 @@ func main() {
 
 	currentVersion := internal.NewCurrentVersion(v)
 	currentVersion.Bump(params.bumpLevel)
+	if params.createTag {
+		err := CreateGitTag(params.dir, currentVersion.Version().String())
+		if err != nil {
+			fmt.Println("Error creating git tag:", err)
+			os.Exit(1)
+		}
+	}
 	fmt.Println(currentVersion.Version().String())
 	os.Exit(0)
 }
@@ -77,11 +108,21 @@ func main() {
 // readGitTag fetches the current git tag from the repository.
 func readGitTag(dir string) string {
 
-	cmd := exec.Command("git", "describe", "--tags", "--always", "--long")
+	cmd := exec.Command("git", "describe", "--tags", "--long")
 	cmd.Dir = dir
 	out, err := cmd.Output()
 	if err != nil {
 		return "0.0.0"
 	}
 	return strings.TrimSpace(string(out))
+}
+
+func CreateGitTag(dir string, tag string) error {
+	cmd := exec.Command("git", "tag", fmt.Sprintf("v%s", tag))
+	cmd.Dir = dir
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("error creating git tag: %s", out)
+	}
+	return nil
 }
