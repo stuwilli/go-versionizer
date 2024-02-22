@@ -110,7 +110,8 @@ func readGitTag(dir string) string {
 }
 
 func CreateGitTag(dir string, tag string) error {
-	cmd := exec.Command("git", "tag", fmt.Sprintf("v%s", tag))
+	cmd := exec.Command("git", "tag", "-a", fmt.Sprintf("v%s", tag), "-m",
+		fmt.Sprintf("Version %s", tag))
 	cmd.Dir = dir
 	out, err := cmd.CombinedOutput()
 	if err != nil {
