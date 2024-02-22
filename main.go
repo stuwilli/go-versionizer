@@ -13,14 +13,16 @@ import (
 )
 
 type command struct {
-	dir       string
-	bumpLevel internal.VersionPart
-	createTag bool
+	dir        string
+	bumpLevel  internal.VersionPart
+	createTag  bool
+	enablePush bool
 }
 
 func commandParse() *command {
 	bumpLevel := flag.String("bump", "patch", "The level to bump the version (major, minor, patch)")
 	createTag := flag.Bool("create", false, "Create a git tag for the new version")
+	enablePush := flag.Bool("push", false, "Push the new tag to the remote repository")
 
 	// Customize the usage function
 	flag.Usage = func() {
@@ -48,9 +50,10 @@ func commandParse() *command {
 	}
 
 	return &command{
-		dir:       dir,
-		bumpLevel: cmd,
-		createTag: *createTag,
+		dir:        dir,
+		bumpLevel:  cmd,
+		createTag:  *createTag,
+		enablePush: *enablePush,
 	}
 }
 
@@ -93,6 +96,14 @@ func main() {
 			os.Exit(1)
 		}
 	}
+	if params.enablePush {
+		err := PushGitTag(params.dir, currentVersion.Version().String())
+		if err != nil {
+			fmt.Println("Error pushing git tag:", err)
+			os.Exit(1)
+		}
+
+	}
 	fmt.Println(currentVersion.Version().String())
 	os.Exit(0)
 }
@@ -116,6 +127,16 @@ func CreateGitTag(dir string, tag string) error {
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("error creating git tag: %s", out)
+	}
+	return nil
+}
+
+func PushGitTag(dir string, tag string) error {
+	cmd := exec.Command("git", "push", "origin", fmt.Sprintf("v%s", tag))
+	cmd.Dir = dir
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("error pushing git tag: %s", out)
 	}
 	return nil
 }
